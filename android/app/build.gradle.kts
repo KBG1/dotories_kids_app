@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.dotories_kids"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // ndkVersion = flutter.ndkVersion  // NDK 비활성화
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
