@@ -30,6 +30,10 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- 네이버 지도 API 키 -->
+        <meta-data
+            android:name="com.naver.maps.map.CLIENT_ID"
+            android:value="11kj9rkc2p" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

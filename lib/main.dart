@@ -1,10 +1,21 @@
-import 'dart:developer';
-
+import 'package:dotories_kids/pages/login_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'theme/app_theme.dart';
 import 'pages/kids_cafe_page.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 환경 변수 로드
+  await dotenv.load(fileName: ".env");
+
+  // 네이버 지도 초기화
+  await FlutterNaverMap().init(
+    clientId: dotenv.env['NAVER_MAP_CLIENT_ID'] ?? '11kj9rkc2p',
+  );
+
   runApp(const ForestKidsApp());
 }
 
@@ -30,6 +41,7 @@ class ForestKidsHomePage extends StatelessWidget {
     // 화면 크기 가져오기
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    var isLogin = false;
 
     return Scaffold(
       body: Container(
@@ -173,9 +185,8 @@ class ForestKidsHomePage extends StatelessWidget {
                           ),
                         ),
                       ),
-                      
-                      const SizedBox(height: 15), // 버튼 사이 간격 조정
 
+                      const SizedBox(height: 15), // 버튼 사이 간격 조정
                       // 마이페이지 버튼
                       Flexible(
                         child: Container(
@@ -195,7 +206,12 @@ class ForestKidsHomePage extends StatelessWidget {
                             child: InkWell(
                               borderRadius: BorderRadius.circular(12),
                               onTap: () {
-                                log('마이페이지 클릭');
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const LoginPage(),
+                                  ),
+                                );
                               },
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
