@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import '../theme/app_theme.dart';
+import 'package:get/get.dart';
+import '../controllers/location_controller.dart';
 
 class KidsCafePage extends StatefulWidget {
   const KidsCafePage({super.key});
@@ -11,11 +13,44 @@ class KidsCafePage extends StatefulWidget {
 
 class _KidsCafePageState extends State<KidsCafePage> {
   late DraggableScrollableController _dragController;
+  final LocationController locationController = Get.put(LocationController());
+  NaverMapController? mapController;
 
   @override
   void initState() {
     super.initState();
     _dragController = DraggableScrollableController();
+    
+    // 첫 위치 요청
+    _requestLocationAndUpdateMap();
+    
+    // 위치가 변경되면 지도 카메라 이동
+    ever(locationController.latitude, (_) => _updateMapCamera());
+    ever(locationController.longitude, (_) => _updateMapCamera());
+  }
+  
+  Future<void> _requestLocationAndUpdateMap() async {
+    await locationController.getCurrentPosition();
+    // 위치를 가져온 후 지도 업데이트
+    if (locationController.hasLocation) {
+      Future.delayed(Duration(milliseconds: 500), () {
+        _updateMapCamera();
+      });
+    }
+  }
+  
+  void _updateMapCamera() async {
+    if (mapController != null && locationController.hasLocation) {
+      await mapController!.updateCamera(
+        NCameraUpdate.scrollAndZoomTo(
+          target: NLatLng(
+            locationController.latitudeDouble,
+            locationController.longitudeDouble,
+          ),
+          zoom: 17,
+        ),
+      );
+    }
   }
 
   @override
@@ -116,24 +151,37 @@ class _KidsCafePageState extends State<KidsCafePage> {
 
               const SizedBox(height: 16),
 
+              
+
               // 네이버 지도 영역
               Container(
-                height: screenHeight * 0.5, // 화면 높이의 50% 고정
+                height: screenHeight * 0.5, 
                 margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: NaverMap(
+                child: Obx(() => NaverMap(
                   options: NaverMapViewOptions(
+                    locationButtonEnable: true,
                     initialCameraPosition: NCameraPosition(
-                      target: NLatLng(37.5666102, 126.9783881), // 서울 중심
-                      zoom: 10,
+                      target: NLatLng(
+                        locationController.latitudeDouble,
+                        locationController.longitudeDouble,
+                      ),
+                      zoom: locationController.hasLocation ? 17 : 10,
                     ),
                     mapType: NMapType.basic,
                     activeLayerGroups: [NLayerGroup.building, NLayerGroup.transit],
                   ),
-                ),
+                  onMapReady: (controller) {
+                    mapController = controller;
+                    // 지도가 준비되면 현재 위치로 이동 (위치가 있는 경우)
+                    if (locationController.hasLocation) {
+                      _updateMapCamera();
+                    }
+                  },
+                )),
               ),
                 ],
               ),
@@ -150,10 +198,10 @@ class _KidsCafePageState extends State<KidsCafePage> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       border: const Border(
-                        top: BorderSide(width: 4, color: Color(0xFF333333)),
-                        left: BorderSide(width: 4, color: Color(0xFF333333)),
-                        right: BorderSide(width: 4, color: Color(0xFF333333)),
-                        bottom: BorderSide.none, // 아래쪽 border 제거
+                        top: BorderSide(width: 1, color: Color(0xFF333333)),
+                        left: BorderSide(width: 1, color: Color(0xFF333333)),
+                        right: BorderSide(width: 1, color: Color(0xFF333333)),
+                        bottom: BorderSide.none,
                       ),
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(25),

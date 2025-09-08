@@ -36,6 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_naver_map: ^1.2.4
   flutter_dotenv: ^5.1.0
+  geolocator: ^14.0.2
+  get: ^4.6.6
 
 dev_dependencies:
   flutter_test:
@@ -47,10 +49,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
-
 # The following section is specific to Flutter packages.
 flutter:
 
@@ -94,3 +96,28 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# flutter_launcher_icons 설정
+flutter_launcher_icons:
+  remove_alpha_ios: true
+  android: 
+    generate: true
+    image_path: "assets/images/logo.png"
+    background_color: "#6BCF7F"
+    adaptive_icon_background: "#6BCF7F"
+    adaptive_icon_foreground: "assets/images/app_logo.png"
+  ios: 
+    generate: true
+    image_path: "assets/images/app_logo.png"
+  web:
+    generate: true
+    image_path: "assets/images/app_logo.png"
+    background_color: "#6BCF7F"
+    theme_color: "#6BCF7F"
+  windows:
+    generate: true
+    image_path: "assets/images/app_logo.png"
+  macos:
+    generate: true
+    image_path: "assets/images/app_logo.png"
+  image_path: "assets/images/app_logo.png"

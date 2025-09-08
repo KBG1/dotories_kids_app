@@ -1,6 +1,7 @@
 import 'package:dotories_kids/main.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'my_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -183,7 +184,7 @@ class _LoginPageState extends State<LoginPage> {
                       // 로그인 버튼
                       GestureDetector(
                         onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => const ForestKidsHomePage()));
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => const MyPage()));
                         },
                         child: Container(
                           width: double.infinity,
