@@ -1,5 +1,9 @@
+import 'package:dotories_kids/pages/edit_user_page.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'child_detail_page.dart';
+import 'edit_user_page.dart';
+import 'kids_cafe_visit_list.dart';
 
 class MyPage extends StatefulWidget {
   const MyPage({super.key});
@@ -117,7 +121,7 @@ class _MyPageState extends State<MyPage> {
               '마이페이지',
               textAlign: TextAlign.center,
               style: AppTextStyles.subTitle.copyWith(
-                fontSize: screenWidth * 0.09,
+                fontSize: screenWidth * 0.07,
               ),
             ),
           ),
@@ -185,7 +189,12 @@ class _MyPageState extends State<MyPage> {
           // 설정 버튼
           GestureDetector(
             onTap: () {
-              // 설정 페이지로 이동
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const EditUserPage(),
+                ),
+              );
             },
             child: Text(
               '설정',
@@ -460,8 +469,18 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
-  Widget _buildChildCard(double screenWidth, String name, String age, String visits, String calories) {
-    return Container(
+   Widget _buildChildCard(double screenWidth, String name, String age, String visits, String calories) {
+     return GestureDetector(
+       onTap: () {
+         // 아이 상세 페이지로 이동
+         Navigator.push(
+           context,
+           MaterialPageRoute(
+             builder: (context) => ChildDetailPage(),
+           ),
+         );
+       },
+       child: Container(
       width: double.infinity,
       padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: ShapeDecoration(
@@ -562,7 +581,8 @@ class _MyPageState extends State<MyPage> {
           ),
         ],
       ),
-    );
+     ),
+   );
   }
 
   Widget _buildVisitHistory(double screenWidth) {
@@ -591,7 +611,12 @@ class _MyPageState extends State<MyPage> {
               ),
               GestureDetector(
                 onTap: () {
-                  // 전체 보기 페이지로 이동
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const KidsCafeVisitListPage(),
+                    ),
+                  );
                 },
                 child: Text(
                   '전체 보기',

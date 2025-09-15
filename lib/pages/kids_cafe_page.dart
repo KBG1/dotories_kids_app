@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import '../theme/app_theme.dart';
+import 'cafe_detail.dart';
 import 'package:get/get.dart';
 import '../controllers/location_controller.dart';
+import 'kids_cafe_visit_list.dart';
 
 class KidsCafePage extends StatefulWidget {
   const KidsCafePage({super.key});
@@ -15,6 +18,9 @@ class _KidsCafePageState extends State<KidsCafePage> {
   late DraggableScrollableController _dragController;
   final LocationController locationController = Get.put(LocationController());
   NaverMapController? mapController;
+  DateTime? _lastCameraUpdateAt;
+  double? _lastLat;
+  double? _lastLng;
 
   @override
   void initState() {
@@ -24,34 +30,66 @@ class _KidsCafePageState extends State<KidsCafePage> {
     // 첫 위치 요청
     _requestLocationAndUpdateMap();
     
-    // 위치가 변경되면 지도 카메라 이동
-    ever(locationController.latitude, (_) => _updateMapCamera());
-    ever(locationController.longitude, (_) => _updateMapCamera());
+    // 위치 변경을 디바운스하여 카메라 업데이트 과도 호출 방지
+    debounce(locationController.latitude, (_) => _updateMapCameraAndLocation(), time: const Duration(milliseconds: 1000));
+    debounce(locationController.longitude, (_) => _updateMapCameraAndLocation(), time: const Duration(milliseconds: 1000));
   }
   
   Future<void> _requestLocationAndUpdateMap() async {
     await locationController.getCurrentPosition();
-    // 위치를 가져온 후 지도 업데이트
+    
+    // 위치를 가져온 후 지도 업데이트 (지연 없이 즉시 실행)
     if (locationController.hasLocation) {
-      Future.delayed(Duration(milliseconds: 500), () {
-        _updateMapCamera();
-      });
+      _updateMapCameraAndLocation();
     }
   }
   
-  void _updateMapCamera() async {
+  void _updateMapCameraAndLocation() async {
     if (mapController != null && locationController.hasLocation) {
+      final double newLat = locationController.latitudeDouble;
+      final double newLng = locationController.longitudeDouble;
+      final DateTime now = DateTime.now();
+
+      // 시간 스로틀: 최소 1초 간격
+      if (_lastCameraUpdateAt != null && now.difference(_lastCameraUpdateAt!).inMilliseconds < 1000) {
+        return;
+      }
+
+      // 거리 스로틀: 10m 이상 이동시에만
+      if (_lastLat != null && _lastLng != null) {
+        final double movedMeters = _distanceMeters(_lastLat!, _lastLng!, newLat, newLng);
+        if (movedMeters < 10) {
+          return;
+        }
+      }
+
+      _lastLat = newLat;
+      _lastLng = newLng;
+      _lastCameraUpdateAt = now;
+
       await mapController!.updateCamera(
         NCameraUpdate.scrollAndZoomTo(
-          target: NLatLng(
-            locationController.latitudeDouble,
-            locationController.longitudeDouble,
-          ),
-          zoom: 17,
+          target: NLatLng(newLat, newLng),
+          zoom: 18,
         ),
       );
     }
   }
+
+  // Haversine 근사 계산 (미터)
+  double _distanceMeters(double lat1, double lon1, double lat2, double lon2) {
+    const double earthRadius = 6371000; // meters
+    final double dLat = _degToRad(lat2 - lat1);
+    final double dLon = _degToRad(lon2 - lon1);
+    final double a =
+        (math.sin(dLat / 2) * math.sin(dLat / 2)) +
+        math.cos(_degToRad(lat1)) * math.cos(_degToRad(lat2)) *
+            (math.sin(dLon / 2) * math.sin(dLon / 2));
+    final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadius * c;
+  }
+
+  double _degToRad(double deg) => deg * (3.141592653589793 / 180.0);
 
   @override
   void dispose() {
@@ -161,7 +199,7 @@ class _KidsCafePageState extends State<KidsCafePage> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: Obx(() => NaverMap(
+                child: NaverMap(
                   options: NaverMapViewOptions(
                     locationButtonEnable: true,
                     initialCameraPosition: NCameraPosition(
@@ -174,14 +212,18 @@ class _KidsCafePageState extends State<KidsCafePage> {
                     mapType: NMapType.basic,
                     activeLayerGroups: [NLayerGroup.building, NLayerGroup.transit],
                   ),
-                  onMapReady: (controller) {
+                  onMapReady: (controller) async {
                     mapController = controller;
-                    // 지도가 준비되면 현재 위치로 이동 (위치가 있는 경우)
+                    
+                    // 지도가 준비되면 현재 위치로 이동 및 현위치 표시 (위치가 있는 경우)
                     if (locationController.hasLocation) {
-                      _updateMapCamera();
+                      _updateMapCameraAndLocation();
+                    } else {
+                      // 위치가 없어도 현위치 버튼 활성화를 위해 기본 설정
+                      mapController!.setLocationTrackingMode(NLocationTrackingMode.follow);
                     }
                   },
-                )),
+                ),
               ),
                 ],
               ),
@@ -292,92 +334,104 @@ class _KidsCafePageState extends State<KidsCafePage> {
   }
 
   Widget _buildCafeItem(double screenWidth) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: ShapeDecoration(
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(
-            width: 1,
-            color: AppColors.main,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const CafeDetailPage(),
           ),
-          borderRadius: BorderRadius.circular(12),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: ShapeDecoration(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(
+              width: 1,
+              color: AppColors.main,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          // 카페 이미지
-          Container(
-            width: 84,
-            height: 84,
-            decoration: ShapeDecoration(
-              color: Colors.grey[300],
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
+        child: Row(
+          children: [
+            // 카페 이미지
+            Container(
+              width: 84,
+              height: 84,
+              decoration: ShapeDecoration(
+                color: Colors.grey[300],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              child: Icon(
+                Icons.store,
+                size: 40,
+                color: AppColors.textSub,
               ),
             ),
-            child: Icon(
-              Icons.store,
-              size: 40,
-              color: AppColors.textSub,
-            ),
-          ),
-          
-          const SizedBox(width: 12),
-          
-          // 카페 정보
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '제니스 키즈카페 신영통점',
-                  style: AppTextStyles.subText.copyWith(
-                    color: AppColors.textDark,
-                    fontSize: screenWidth * 0.045,
-                  ),
-                ),
-                
-                const SizedBox(height: 4),
-                
-                Text(
-                  '경기도 화성시 반월동 66-9 명성프라자 3층 303호',
-                  style: AppTextStyles.description.copyWith(
-                    color: const Color(0xFF9B9B9B),
-                    fontSize: screenWidth * 0.035,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                
-                const SizedBox(height: 8),
-                
-                // 지도에서 보기 버튼
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: ShapeDecoration(
-                    color: AppColors.main,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
+            
+            const SizedBox(width: 12),
+            
+            // 카페 정보
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '제니스 키즈카페 신영통점',
+                    style: AppTextStyles.subText.copyWith(
+                      color: AppColors.textDark,
+                      fontSize: screenWidth * 0.045,
                     ),
                   ),
-                  child: Text(
-                    '지도에서 보기',
+                  
+                  const SizedBox(height: 4),
+                  
+                  Text(
+                    '경기도 화성시 반월동 66-9 명성프라자 3층 303호',
                     style: AppTextStyles.description.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF9B9B9B),
+                      fontSize: screenWidth * 0.035,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  
+                  const SizedBox(height: 8),
+                  
+                  // 지도에서 보기 버튼
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: ShapeDecoration(
+                      color: AppColors.main,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                    child: Text(
+                      '지도에서 보기',
+                      style: AppTextStyles.description.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
+

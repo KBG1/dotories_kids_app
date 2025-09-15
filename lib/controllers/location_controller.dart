@@ -6,7 +6,7 @@ class LocationController extends GetxController {
   var longitude = ''.obs;
   var isLoading = false.obs;
 
-  // 현재위치 가져오기
+  // 현재위치 가져오기 (여러 번 시도하여 정확도 향상)
   Future getCurrentPosition() async {
     isLoading.value = true;
     
@@ -40,13 +40,24 @@ class LocationController extends GetxController {
     }
 
     try {
+      // 최고 정확도로 위치 가져오기 (GPS 우선)
+      const LocationSettings locationSettings = LocationSettings(
+        accuracy: LocationAccuracy.high,  // high -> best로 변경
+        distanceFilter: 5,               // 100m -> 10m로 변경 (더 민감하게)
+        timeLimit: Duration(seconds: 10), // 15초 타임아웃 추가
+      );
+      
       // 현재 위치 구하기
-      Position position = await Geolocator.getCurrentPosition();
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: locationSettings,
+      );
       
       latitude.value = position.latitude.toString();
       longitude.value = position.longitude.toString();
       
       print('현재 위치: ${latitude.value}, ${longitude.value}');
+      print('정확도: ${position.accuracy}m'); // 정확도 표시
+      print('위치 소스: ${position.isMocked ? "Mock" : "Real"}'); // Mock 위치인지 확인
     } catch (e) {
       print('위치 가져오기 실패: $e');
     } finally {
